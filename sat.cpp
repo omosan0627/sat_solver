@@ -254,6 +254,8 @@ bool sat_solver(int l) {
 }
 
 void solve() {
+	string s1, s2;
+	cin >> s1 >> s2;
 	cin >> N >> M;
 	rep(i, 0, M) {
 		int a;
@@ -267,17 +269,17 @@ void solve() {
 	rep(i, 1, N + 1) {
 		debug(i, A[i]);
 	}
-	rep(i, 0, 4) {
-		rep(j, 0, 4) {
-			rep(k, 0, 4) {
-				if(A[(i * 4 + j) * 4 + k + 1] == 1) {
-					cout << k + 1 << " ";
-					break;
-				}
-			}
-		}
-		cout << "\n";
-	}
+	// rep(i, 0, 4) {
+	// 	rep(j, 0, 4) {
+	// 		rep(k, 0, 4) {
+	// 			if(A[(i * 4 + j) * 4 + k + 1] == 1) {
+	// 				cout << k + 1 << " ";
+	// 				break;
+	// 			}
+	// 		}
+	// 	}
+	// 	cout << "\n";
+	// }
 	// rep(i, 0, M) {
 	// 	debug(W[i]);
 	// }
