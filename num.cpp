@@ -46,8 +46,8 @@ void add(vi vec) {
 }
 
 void solve() {
-	N = 4 * 4 * 4;
-	rep(i, 0, 16) {
+	N = 4 * 4;
+	rep(i, 0, 4) {
 		vi vec;
 		rep(j, 0, 4) {
 			vec.pb(i * 4 + j + 1);
@@ -62,7 +62,7 @@ void solve() {
 			}
 		}
 	}
-	rep(i, 0, 4) {
+	rep(i, 0, 1) {
 		rep(k, 0, 4) {
 			vi vec;
 			rep(j, 0, 4) {
@@ -71,29 +71,29 @@ void solve() {
 			add(vec);
 		}
 	}
-	rep(j, 0, 4) {
-		rep(k, 0, 4) {
-			vi vec;
-			rep(i, 0, 4) {
-				vec.pb((4 * i + j) * 4 + k + 1);
-			}
-			add(vec);
-		}
-	}
-	rep(i, 0, 2) {
-		rep(j, 0, 2) {
-			rep(k, 0, 4) {
-				vi vec;
-				rep(n, 0, 2) {
-					rep(m, 0, 2) {
-						vec.pb((i * 8 + j * 2 + n * 4 + m) * 4 + k + 1);
-					}
-				}
-				add(vec);
-			}
-		}
-	}
-	cout << N << " " << M << "\n";
+	// rep(j, 0, 4) {
+	// 	rep(k, 0, 4) {
+	// 		vi vec;
+	// 		rep(i, 0, 4) {
+	// 			vec.pb((4 * i + j) * 4 + k + 1);
+	// 		}
+	// 		add(vec);
+	// 	}
+	// }
+	// rep(i, 0, 2) {
+	// 	rep(j, 0, 2) {
+	// 		rep(k, 0, 4) {
+	// 			vi vec;
+	// 			rep(n, 0, 2) {
+	// 				rep(m, 0, 2) {
+	// 					vec.pb((i * 8 + j * 2 + n * 4 + m) * 4 + k + 1);
+	// 				}
+	// 			}
+	// 			add(vec);
+	// 		}
+	// 	}
+	// }
+	cout << "p cnf " << N << " " << M << "\n";
 	rep(i, 0, M) {
 		rep(j, 0, sz(L[i])) {
 			cout << L[i][j] << " ";

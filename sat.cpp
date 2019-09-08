@@ -57,32 +57,18 @@ struct Timer {
 } timer;
 
 
-int N, M; //num of var, clouses
-vector<pi> G[MAX_N]; //to and clouse
+int N, M; //num of var, clauses
 
-vi W[MAX_N]; //clouses
+vi W[MAX_N]; //clauses
 int A[MAX_N]; //assignment neg 0 and pos
 int L[MAX_N]; //level
 int C[MAX_N]; //num of in edges
+vector<pi> hist; //implied var and clause
 
 void show_all() {
 	rep(i, 1, N + 2) {
-		debug(i, A[i], L[i], C[i], G[i]);
+		debug(i, A[i], L[i], C[i]);
 	}
-}
-
-void add_edge(int from, int to, int c) {
-	G[to].pb(pi(from, c));
-	C[from]++;
-}
-
-void delete_edge(int v) {
-	A[v] = 0;
-	L[v] = 0;
-	rep(i, 0, sz(G[v])) {
-		C[G[v][i].fst]--;
-	}
-	G[v].clear();
 }
 
 inline int kai(int idx) {
@@ -103,7 +89,7 @@ inline void assign_true(int idx) {
 	else A[idx] = 1;
 }
 
-bool unit_propagation() {
+bool unit_propagation() { //redundant
 	rep(i, 0, M) {
 		int neg = 0, pos = 0, zero = 0;
 		int zidx = -1;
@@ -125,11 +111,11 @@ bool unit_propagation() {
 					int idx = W[i][j];
 					if(j == zidx) continue;
 
-					add_edge(abs(idx), abs(to), i);
 					l = max(l, L[abs(idx)]);
 				}
 				assign_true(to);
-				L[abs(to)] = l;
+				L[abs(to)] = (zero == 1 ? l : -1);
+				hist.push_back(pi(abs(to), i));
 				if(zero == 0) return false;
 				else return unit_propagation();
 			}
@@ -138,38 +124,18 @@ bool unit_propagation() {
 	return true;
 }
 
-void backtrack(int l) {
-	rep(i, 1, N + 2) {
-		if(L[i] <= l) continue;
-		delete_edge(i);
-	}
-}
 
 int conflict(int l) {
-	deque<int> que;
-	rep(i, 1, N + 1) {
-		if(C[i] == 0 && L[i] == l) {
-			que.push_back(i);
-		}
-	}
-	while(!que.empty()) {
-		int v = que.front(); que.pop_front();
-		rep(i, 0, sz(G[v])) {
-			int n = G[v][i].fst;
-			if(C[n] == 1 && L[n] == l) que.push_back(n);
-		}
-		delete_edge(v);
-	}
-
 	vi new_equ;
-	que.push_back(N + 1);
+	new_equ.pb(N + 1);
 
-	while(!que.empty()) {
+	while(!hist.empty()) {
+		// debug(new_equ, vector<pi>(all(hist)));
 
 		// show_all();
 		// debug("conflict", new_equ);
 		int lcnt = 0;
-		rep(i, 0, sz(new_equ)) {
+		rep(i, 0, sz(new_equ)) { //redundant
 			int nl = L[abs(new_equ[i])];
 			if(nl == l) {
 				lcnt++;
@@ -177,17 +143,21 @@ int conflict(int l) {
 		}
 		if(lcnt == 1) break;
 
-		int v = que.front(); que.pop_front();
+		pi p = hist.back(); hist.pop_back();
+		int v = p.fst, wi = p.sec;
+		assert(wi != -1);
+		A[v] = 0;
+		L[v] = 0;
+		bool found = false;
+		rep(i, 0, sz(new_equ)) { //redundant
+			if(abs(new_equ[i]) == v) {
+				found = true;
+				break;
+			}
+		}
+		if(!found) continue;
 		// debug(v);
 		// show_all();
-
-		int d = -1;
-		rep(i, 0, sz(G[v])) {
-			int n = G[v][i].fst;
-			d = G[v][i].sec;
-			if(C[n] == 1 && L[n] == l) que.push_back(n);
-		}
-		assert(d != -1);
 
 		auto combine = [&](vi& v1, vi& v2, int v) {
 			vi res;
@@ -204,9 +174,7 @@ int conflict(int l) {
 			return res;
 		};
 
-		new_equ = combine(new_equ, W[d], v);
-		delete_edge(v);
-		// debug(new_equ, vi(all(que)), l);
+		new_equ = combine(new_equ, W[wi], v); //redundant
 	}
 	W[M++] = new_equ;
 
@@ -217,38 +185,47 @@ int conflict(int l) {
 			ml = max(ml, nl);
 		}
 	}
+	// debug(new_equ, ml);
 	return ml;
 }
 
-bool sat_solver(int l) {
+int backtrack(int l) {
+	while(!unit_propagation()) {
+		if(l == -1) return -1;
+		l = conflict(l);
+		while(!hist.empty()) {
+			pi p = hist.back();
+			int v = p.fst;
+			if(L[v] <= l) break;
+			hist.pop_back();
+			A[v] = 0;
+			L[v] = 0;
+		}
+	}
+	return l + 1;
+}
+
+
+bool sat_solver() {
+	if(!unit_propagation()) return false;
+
+	auto finish = [&]() -> int {
+		rep(i, 1, N + 1) {
+			if(A[i] == 0) return i;
+		}
+		return 0;
+	};
+	int x = 0, l = 0;
+	while(x = finish(), x != 0) {
 	// timer.reset();
 	// while(timer.get() < 2.0) {
 	// }
-	if(!unit_propagation()) {
-		// show_all();
+		// debug(x, l);
+		A[x] = 1;
+		L[x] = l;
+		hist.push_back(pi(x, -1));
+		l = backtrack(l);
 		if(l == -1) return false;
-		int nl = conflict(l);
-		backtrack(nl);
-		return sat_solver(nl);
-	}
-	l++;
-	rep(i, 1, N + 1) {
-		if(A[i] == 0) {
-			A[i] = 1;
-			L[i] = l;
-			if(!unit_propagation()) {
-				// timer.reset();
-				// while(timer.get() < 2.0) {
-				// }
-				int nl = conflict(l);
-				backtrack(nl);
-				// debug(i, l, nl);
-				// show_all();
-				// debug("backtrack", nl);
-				return sat_solver(nl);
-			}
-			l++;
-		}
 	}
 	return true;
 }
@@ -265,7 +242,7 @@ void solve() {
 			W[i].pb(a);
 		}
 	}
-	debug(sat_solver(-1));
+	debug(sat_solver());
 	rep(i, 1, N + 1) {
 		debug(i, A[i]);
 	}
