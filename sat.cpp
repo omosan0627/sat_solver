@@ -126,66 +126,47 @@ bool unit_propagation() { //redundant
 
 
 int conflict(int l) {
-	vi new_equ;
-	new_equ.pb(N + 1);
+	set<int> new_equ;
+	new_equ.insert(N + 1);
 
-	while(!hist.empty()) {
-		// debug(new_equ, vector<pi>(all(hist)));
-
+	int lcnt = 0, ml = -1;
+	while(!hist.empty() && lcnt != 1) {
 		// show_all();
 		// debug("conflict", new_equ);
-		int lcnt = 0;
-		rep(i, 0, sz(new_equ)) { //redundant
-			int nl = L[abs(new_equ[i])];
-			if(nl == l) {
-				lcnt++;
-			}
-		}
-		if(lcnt == 1) break;
 
 		pi p = hist.back(); hist.pop_back();
 		int v = p.fst, wi = p.sec;
 		assert(wi != -1);
+		int pl = L[v];
 		A[v] = 0;
 		L[v] = 0;
-		bool found = false;
-		rep(i, 0, sz(new_equ)) { //redundant
-			if(abs(new_equ[i]) == v) {
-				found = true;
-				break;
-			}
+		if(new_equ.count(v)) {
+			new_equ.erase(v);
+			lcnt -= (pl == l);
 		}
-		if(!found) continue;
+		else if(new_equ.count(-v)) {
+			new_equ.erase(-v);
+			lcnt -= (pl == l);
+		}
+		else continue;
+		// debug(vi(all(new_equ)), ml, v, W[wi], lcnt);
 		// debug(v);
 		// show_all();
 
-		auto combine = [&](vi& v1, vi& v2, int v) {
-			vi res;
-			rep(i, 0, sz(v1)) {
-				if(abs(v1[i]) == v) continue;
-				res.pb(v1[i]);
-			}
-			rep(i, 0, sz(v2)) {
-				if(abs(v2[i]) == v) continue;
-				res.pb(v2[i]);
-			}
-			sort(all(res));
-			res.erase(unique(all(res)), res.end());
-			return res;
-		};
+		rep(i, 0, sz(W[wi])) {
+			int nv = W[wi][i];
+			if(abs(nv) == v || new_equ.count(nv)) continue;
 
-		new_equ = combine(new_equ, W[wi], v); //redundant
-	}
-	W[M++] = new_equ;
+			new_equ.insert(nv);
+			int nl = L[abs(nv)];
 
-	int ml = -1;
-	rep(i, 0, sz(new_equ)) {
-		int nl = L[abs(new_equ[i])];
-		if(nl != l) {
-			ml = max(ml, nl);
+			lcnt += (nl == l);
+			if(nl < l) {
+				ml = max(ml, nl);
+			}
 		}
 	}
-	// debug(new_equ, ml);
+	W[M++] = vi(all(new_equ));
 	return ml;
 }
 
@@ -220,6 +201,7 @@ bool sat_solver() {
 	// timer.reset();
 	// while(timer.get() < 2.0) {
 	// }
+	// debug(x);
 		// debug(x, l);
 		A[x] = 1;
 		L[x] = l;
