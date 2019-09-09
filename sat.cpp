@@ -64,6 +64,7 @@ int A[MAX_N]; //assignment neg 0 and pos
 int L[MAX_N]; //level
 int C[MAX_N]; //num of in edges
 vector<pi> hist; //implied var and clause
+set<int> und;
 
 void show_all() {
 	rep(i, 1, N + 2) {
@@ -88,6 +89,7 @@ inline void assign_true(int idx) {
 	if(idx < 0) A[-idx] = -1;
 	else A[idx] = 1;
 }
+
 
 bool unit_propagation() { //redundant
 	rep(i, 0, M) {
@@ -116,6 +118,7 @@ bool unit_propagation() { //redundant
 				assign_true(to);
 				L[abs(to)] = (zero == 1 ? l : -1);
 				hist.push_back(pi(abs(to), i));
+				und.erase(abs(to));
 				if(zero == 0) return false;
 				else return unit_propagation();
 			}
@@ -140,6 +143,8 @@ int conflict(int l) {
 		int pl = L[v];
 		A[v] = 0;
 		L[v] = 0;
+		und.insert(v);
+
 		if(new_equ.count(v)) {
 			new_equ.erase(v);
 			lcnt -= (pl == l);
@@ -181,6 +186,7 @@ int backtrack(int l) {
 			hist.pop_back();
 			A[v] = 0;
 			L[v] = 0;
+			und.insert(v);
 		}
 	}
 	return l + 1;
@@ -189,15 +195,13 @@ int backtrack(int l) {
 
 bool sat_solver() {
 	if(!unit_propagation()) return false;
+	rep(i, 1, N + 1) und.insert(i);
 
-	auto finish = [&]() -> int {
-		rep(i, 1, N + 1) {
-			if(A[i] == 0) return i;
-		}
-		return 0;
-	};
-	int x = 0, l = 0;
-	while(x = finish(), x != 0) {
+	int l = 0;
+	while(!und.empty()) {
+		auto it = und.begin();
+		int x = *it;
+		und.erase(it);
 	// timer.reset();
 	// while(timer.get() < 2.0) {
 	// }
