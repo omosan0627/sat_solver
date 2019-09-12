@@ -66,17 +66,16 @@ vector<pi> hist; //implied var and clause
 set<int> und; //undicided variables
 
 deque<pi> unsatis; //clause to update and where it is located in the clause
-vi singlel; //single literal
 
 set<pi> WL[MAX_N][2]; //watched literals clause and where it is located
 int VL[MAX_N][2]; //watched literal "index" at clause i
 
 void show_all() {
 	int sum = 0;
-	// rep(i, 1, N + 1) {
-	// 	debug(i, vector<pi>(all(WL[i][0])), vector<pi>(all(WL[i][1])));
-	// 	sum += sz(WL[i][0]) + sz(WL[i][1]);
-	// }
+	rep(i, 1, N + 1) {
+		debug(i, vector<pi>(all(WL[i][0])), vector<pi>(all(WL[i][1])));
+		sum += sz(WL[i][0]) + sz(WL[i][1]);
+	}
 	debug("sum", sum);
 	// rep(i, 0, M) debug(i, VL[i][0], VL[i][1]);
 	rep(i, 1, N + 2) {
@@ -96,73 +95,18 @@ inline int kai(int idx) {
 	}
 }
 
-inline void assign_true(int idx) {
-	assert(idx != 0);
-	if(idx < 0) A[-idx] = -1;
-	else A[idx] = 1;
-}
-
-bool update_literal(pi wp) {
-	int wi = wp.fst, idx = wp.sec;
-	int itarget = (VL[wi][0] != idx);
-	int oidx = (itarget == 0) ? VL[wi][1] : VL[wi][0];
-	// debug(idx, oidx);
-
-	if(kai(W[wi][oidx]) > 0) return true;
-
-	else {
-		int at = -1;
-		rep(i, 0, sz(W[wi])) {
-			if(i == idx || i == oidx) continue;
-			if(kai(W[wi][i]) >= 0) {
-				at = i;
-				break;
-			}
-		}
-		if(at != -1) {
-			int jdx = W[wi][idx];
-			if(jdx < 0) WL[abs(jdx)][0].erase(pi(wi, idx));
-			else WL[abs(jdx)][1].erase(pi(wi, idx));
-
-			VL[wi][itarget] = at;
-
-			jdx = W[wi][at];
-			if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, at));
-			else WL[abs(jdx)][1].insert(pi(wi, at));
-		}
-		else {
-			if(kai(W[wi][oidx]) == 0) {
-				int f = W[wi][oidx], s = W[wi][idx];
-				hist.pb(pi(abs(f), wi));
-				A[abs(f)] = f < 0 ? -1 : 1;
-				L[abs(f)] = L[abs(s)];
-				und.erase(abs(f));
-				int at = (f < 0 ? 1 : 0);
-				for(auto tp: WL[abs(f)][at]) {
-					unsatis.push_back(tp);
-				}
-			}
-			else {
-				hist.pb(pi(N + 1, wi));
-				L[N + 1] = -1;
-				return false;
-			}
-		}
-		return true;
-	}
-}
-
 
 bool unit_propagation() { //redundant
-	if(hist.empty()) {
-		rep(i, 0, sz(singlel)) {
-			int idx = W[singlel[i]][0];
+
+	while(!unsatis.empty()) {
+		pi wp = unsatis.front(); unsatis.pop_front();
+		if(sz(W[wp.fst]) == 1) {
+			int idx = W[wp.fst][0];
 			if(kai(idx) > 0) continue;
 			else if(kai(idx) < 0) return false;
 			else {
 				A[abs(idx)] = idx < 0 ? -1 : 1;
 				L[abs(idx)] = 0;
-				hist.pb(pi(abs(idx), singlel[i]));
 				und.erase(abs(idx));
 
 				int at = (idx < 0 ? 1 : 0);
@@ -171,15 +115,52 @@ bool unit_propagation() { //redundant
 				}
 			}
 		}
-	}
-	while(!unsatis.empty()) {
-		pi wp = unsatis.front(); unsatis.pop_front();
-		// debug("up", wp, vector<pi>(all(unsatis)));
-		// show_all();
-		if(!update_literal(wp)) {
-			// debug(wp);
-			unsatis.clear();
-			return false;
+		else {
+			int wi = wp.fst, idx = wp.sec;
+			int itarget = (VL[wi][0] != idx);
+			int oidx = (itarget == 0) ? VL[wi][1] : VL[wi][0];
+
+			if(kai(W[wi][oidx]) > 0) continue;
+
+			else {
+				int at = -1;
+				rep(i, 0, sz(W[wi])) {
+					if(i == idx || i == oidx) continue;
+					if(kai(W[wi][i]) >= 0) {
+						at = i;
+						break;
+					}
+				}
+				if(at != -1) {
+					int jdx = W[wi][idx];
+					if(jdx < 0) WL[abs(jdx)][0].erase(pi(wi, idx));
+					else WL[abs(jdx)][1].erase(pi(wi, idx));
+
+					VL[wi][itarget] = at;
+
+					jdx = W[wi][at];
+					if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, at));
+					else WL[abs(jdx)][1].insert(pi(wi, at));
+				}
+				else {
+					if(kai(W[wi][oidx]) == 0) {
+						int f = W[wi][oidx], s = W[wi][idx];
+						hist.pb(pi(abs(f), wi));
+						A[abs(f)] = f < 0 ? -1 : 1;
+						L[abs(f)] = L[abs(s)];
+						und.erase(abs(f));
+						int at = f < 0 ? 1 : 0;
+						for(auto tp: WL[abs(f)][at]) {
+							unsatis.push_back(tp);
+						}
+					}
+					else {
+						hist.pb(pi(N + 1, wi));
+						unsatis.clear();
+						return false;
+					}
+				}
+			}
 		}
 	}
 	return true;
@@ -190,17 +171,11 @@ int conflict(int l) {
 	set<int> new_equ;
 	new_equ.insert(N + 1);
 
-	int lcnt = 0, ml = -1;
+	int lcnt = 0, ml = 0;
 	while(!hist.empty() && lcnt != 1) {
-		// show_all();
-		// debug("conflict", new_equ);
 
 		pi p = hist.back(); hist.pop_back();
 		int v = p.fst, wi = p.sec;
-		// if(wi == -1) {
-		// 	debug(vector<pi>(all(hist)), vector<int>(all(new_equ)), lcnt);
-		// 	show_all(); debug(singlel, W[singlel[0]]);
-		// }
 		assert(wi != -1);
 		int pl = L[v];
 		A[v] = 0;
@@ -216,9 +191,6 @@ int conflict(int l) {
 			lcnt -= (pl == l);
 		}
 		else continue;
-		// debug(vi(all(new_equ)), ml, v, W[wi], lcnt);
-		// debug(v);
-		// show_all();
 
 		rep(i, 0, sz(W[wi])) {
 			int nv = W[wi][i];
@@ -233,33 +205,38 @@ int conflict(int l) {
 			}
 		}
 	}
-	// debug("new_equ", vi(all(new_equ)));
-	W[M++] = vi(all(new_equ));
-	if(sz(new_equ) == 1) singlel.pb(M - 1);
+	vi new_eqv = vi(all(new_equ));
+
+	W[M++] = new_eqv;
+	if(sz(new_equ) == 1) {
+		unsatis.pb(pi(M - 1, -1));
+	}
 	else {
 		pi sp = pi(-1, -1), tp = pi(-1, -1); //first and second;
 		auto upd = [&](pi p) {
 			if(sp < p) {
-				tp = sp;
-				sp = p;
+				tp = sp; sp = p;
 			}
-			else {
-				tp = max(tp, p);
+			else if(tp < p){
+				tp = p;
 			}
 		};
-		int i = 0;
-		for(auto idx : new_equ) {
+
+		rep(i, 0, sz(new_eqv)) {
+			int idx = new_eqv[i];
 			if(kai(idx) >= 0) upd(pi(N + 1, i));
 			else upd(pi(L[abs(idx)], i));
-			i++;
 		}
+
 		VL[M - 1][0] = sp.sec;
 		VL[M - 1][1] = tp.sec;
+
 		auto add = [&](int i) -> void{
 			int idx = W[M - 1][i];
 			if(idx < 0) WL[abs(idx)][0].insert(pi(M - 1, i));
 			else WL[abs(idx)][1].insert(pi(M - 1, i));
 		};
+
 		add(sp.sec); add(tp.sec);
 		unsatis.pb(pi(M - 1, tp.sec));
 	}
@@ -268,8 +245,7 @@ int conflict(int l) {
 
 int backtrack(int l) {
 	while(!unit_propagation()) {
-		// debug(l);
-		if(l == -1) return -1;
+		if(l == 0) return 0;
 		l = conflict(l);
 		while(!hist.empty()) {
 			pi p = hist.back();
@@ -281,14 +257,14 @@ int backtrack(int l) {
 			und.insert(v);
 		}
 	}
-	// debug("backtrack", l);
-	return max(l + 1, 1);
+	return l + 1;
 }
 
 
 bool sat_solver() {
+	rep(i, 1, N + 1) und.insert(i);
 	rep(i, 0, M) {
-		if(sz(W[i]) == 1) singlel.pb(i);
+		if(sz(W[i]) == 1) unsatis.pb(pi(i, -1));
 		else {
 			VL[i][0] = 0;
 			VL[i][1] = 1;
@@ -299,9 +275,6 @@ bool sat_solver() {
 			}
 		}
 	}
-	// debug(singlel);
-	// show_all();
-	rep(i, 1, N + 1) und.insert(i);
 	if(!unit_propagation()) return false;
 
 	int l = 1;
@@ -309,12 +282,6 @@ bool sat_solver() {
 		auto it = und.begin();
 		int x = *it;
 		und.erase(it);
-		// debug("omo");
-		// timer.reset();
-		// while(timer.get() < 2.0) {
-		// }
-		// debug(x, vector<pi>(all(WL[x][0])));
-		// show_all();
 		A[x] = 1;
 		L[x] = l;
 		for(pi wp: WL[x][0]) {
@@ -322,7 +289,7 @@ bool sat_solver() {
 		}
 		hist.push_back(pi(x, -1));
 		l = backtrack(l);
-		if(l == -1) return false;
+		if(!l) return false;
 	}
 	return true;
 }
@@ -343,25 +310,6 @@ void solve() {
 	rep(i, 1, N + 1) {
 		debug(i, A[i]);
 	}
-	rep(i, 0, 9) {
-		rep(j, 0, 9) {
-			rep(k, 0, 9) {
-				if(A[(i * 9 + j) * 9 + k + 1] == 1) {
-					cout << k + 1 << " ";
-					break;
-				}
-			}
-		}
-		cout << "\n";
-	}
-	// rep(i, 0, M) {
-	// 	debug(W[i]);
-	// }
-	// rep(i, 0, N + 1) {
-	// 	rep(j, 0, sz(G[i])) {
-	// 		debug(G[i][j].fst, i, G[i][j].sec);
-	// 	}
-	// }
 }
 
 uint32_t rd() {

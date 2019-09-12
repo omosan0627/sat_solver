@@ -46,8 +46,8 @@ void add(vi vec) {
 }
 
 void solve() {
-	N = 9 * 9;
-	rep(i, 0, 9) {
+	N = 81 * 9;
+	rep(i, 0, 81) {
 		vi vec;
 		rep(j, 0, 9) {
 			vec.pb(i * 9 + j + 1);
@@ -62,7 +62,7 @@ void solve() {
 			}
 		}
 	}
-	rep(i, 0, 1) {
+	rep(i, 0, 9) {
 		rep(k, 0, 9) {
 			vi vec;
 			rep(j, 0, 9) {
@@ -71,28 +71,28 @@ void solve() {
 			add(vec);
 		}
 	}
-	// rep(j, 0, 9) {
-	// 	rep(k, 0, 9) {
-	// 		vi vec;
-	// 		rep(i, 0, 9) {
-	// 			vec.pb((9 * i + j) * 9 + k + 1);
-	// 		}
-	// 		add(vec);
-	// 	}
-	// }
-	// rep(i, 0, 3) {
-	// 	rep(j, 0, 3) {
-	// 		rep(k, 0, 9) {
-	// 			vi vec;
-	// 			rep(n, 0, 3) {
-	// 				rep(m, 0, 3) {
-	// 					vec.pb((i * 27 + j * 3 + n * 9 + m) * 9 + k + 1);
-	// 				}
-	// 			}
-	// 			add(vec);
-	// 		}
-	// 	}
-	// }
+	rep(j, 0, 9) {
+		rep(k, 0, 9) {
+			vi vec;
+			rep(i, 0, 9) {
+				vec.pb((9 * i + j) * 9 + k + 1);
+			}
+			add(vec);
+		}
+	}
+	rep(i, 0, 3) {
+		rep(j, 0, 3) {
+			rep(k, 0, 9) {
+				vi vec;
+				rep(n, 0, 3) {
+					rep(m, 0, 3) {
+						vec.pb((i * 27 + j * 3 + n * 9 + m) * 9 + k + 1);
+					}
+				}
+				add(vec);
+			}
+		}
+	}
 	cout << "p cnf " << N << " " << M << "\n";
 	rep(i, 0, M) {
 		rep(j, 0, sz(L[i])) {
