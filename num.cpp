@@ -46,47 +46,47 @@ void add(vi vec) {
 }
 
 void solve() {
-	N = 4 * 4;
-	rep(i, 0, 4) {
+	N = 9 * 9;
+	rep(i, 0, 9) {
 		vi vec;
-		rep(j, 0, 4) {
-			vec.pb(i * 4 + j + 1);
+		rep(j, 0, 9) {
+			vec.pb(i * 9 + j + 1);
 		}
 		add(vec);
-		rep(j, 0, 4) {
-			rep(k, j + 1, 4) {
+		rep(j, 0, 9) {
+			rep(k, j + 1, 9) {
 				vi vec;
-				vec.pb(-(i * 4 + j + 1));
-				vec.pb(-(i * 4 + k + 1));
+				vec.pb(-(i * 9 + j + 1));
+				vec.pb(-(i * 9 + k + 1));
 				add(vec);
 			}
 		}
 	}
 	rep(i, 0, 1) {
-		rep(k, 0, 4) {
+		rep(k, 0, 9) {
 			vi vec;
-			rep(j, 0, 4) {
-				vec.pb((4 * i + j) * 4 + k + 1);
+			rep(j, 0, 9) {
+				vec.pb((9 * i + j) * 9 + k + 1);
 			}
 			add(vec);
 		}
 	}
-	// rep(j, 0, 4) {
-	// 	rep(k, 0, 4) {
+	// rep(j, 0, 9) {
+	// 	rep(k, 0, 9) {
 	// 		vi vec;
-	// 		rep(i, 0, 4) {
-	// 			vec.pb((4 * i + j) * 4 + k + 1);
+	// 		rep(i, 0, 9) {
+	// 			vec.pb((9 * i + j) * 9 + k + 1);
 	// 		}
 	// 		add(vec);
 	// 	}
 	// }
-	// rep(i, 0, 2) {
-	// 	rep(j, 0, 2) {
-	// 		rep(k, 0, 4) {
+	// rep(i, 0, 3) {
+	// 	rep(j, 0, 3) {
+	// 		rep(k, 0, 9) {
 	// 			vi vec;
-	// 			rep(n, 0, 2) {
-	// 				rep(m, 0, 2) {
-	// 					vec.pb((i * 8 + j * 2 + n * 4 + m) * 4 + k + 1);
+	// 			rep(n, 0, 3) {
+	// 				rep(m, 0, 3) {
+	// 					vec.pb((i * 27 + j * 3 + n * 9 + m) * 9 + k + 1);
 	// 				}
 	// 			}
 	// 			add(vec);

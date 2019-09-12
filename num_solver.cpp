@@ -327,21 +327,70 @@ bool sat_solver() {
 	return true;
 }
 
+void add(vi vec) {
+	W[M++] = vec;
+}
+
 void solve() {
-	string s1, s2;
-	cin >> s1 >> s2;
-	cin >> N >> M;
-	rep(i, 0, M) {
-		int a;
-		while(true) {
-			cin >> a; 
-			if(a == 0) break;
-			W[i].pb(a);
+	N = 81 * 9; M = 0;
+	rep(i, 0, 81) {
+		vi vec;
+		rep(j, 0, 9) {
+			vec.pb(i * 9 + j + 1);
+		}
+		add(vec);
+		rep(j, 0, 9) {
+			rep(k, j + 1, 9) {
+				vi vec;
+				vec.pb(-(i * 9 + j + 1));
+				vec.pb(-(i * 9 + k + 1));
+				add(vec);
+			}
 		}
 	}
-	debug(sat_solver());
-	rep(i, 1, N + 1) {
-		debug(i, A[i]);
+	rep(i, 0, 9) {
+		rep(k, 0, 9) {
+			vi vec;
+			rep(j, 0, 9) {
+				vec.pb((9 * i + j) * 9 + k + 1);
+			}
+			add(vec);
+		}
+	}
+	rep(j, 0, 9) {
+		rep(k, 0, 9) {
+			vi vec;
+			rep(i, 0, 9) {
+				vec.pb((9 * i + j) * 9 + k + 1);
+			}
+			add(vec);
+		}
+	}
+	rep(i, 0, 3) {
+		rep(j, 0, 3) {
+			rep(k, 0, 9) {
+				vi vec;
+				rep(n, 0, 3) {
+					rep(m, 0, 3) {
+						vec.pb((i * 27 + j * 3 + n * 9 + m) * 9 + k + 1);
+					}
+				}
+				add(vec);
+			}
+		}
+	}
+	rep(i, 0, 9) {
+		rep(j, 0, 9) {
+			int b; cin >> b;
+			if(b != 0) {
+				vi vec;
+				vec.pb((i * 9 + j) * 9 + b);
+				add(vec);
+			}
+		}
+	}
+	if(!sat_solver()) {
+		cout << "NO SOLUTION\n";
 	}
 	rep(i, 0, 9) {
 		rep(j, 0, 9) {
@@ -354,14 +403,6 @@ void solve() {
 		}
 		cout << "\n";
 	}
-	// rep(i, 0, M) {
-	// 	debug(W[i]);
-	// }
-	// rep(i, 0, N + 1) {
-	// 	rep(j, 0, sz(G[i])) {
-	// 		debug(G[i][j].fst, i, G[i][j].sec);
-	// 	}
-	// }
 }
 
 uint32_t rd() {
@@ -392,4 +433,5 @@ int main() {
     cerr << "Time: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
 	return 0;
 }
+
 
