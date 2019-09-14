@@ -38,6 +38,27 @@ const double PI = 3.14159265358979323846;
 mt19937 rng; //use it by rng() % mod, shuffle(all(vec), rng)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+struct xorshift {
+	unsigned int x, y, z, w;
+	unsigned int t;
+	xorshift() {
+		x = rng(); y = rng(); z = rng(); w = rng();
+		t = 0;
+	}
+	int rand() {
+		t = x ^ (x << 11);
+        x = y;
+        y = z;
+        z = w;
+        w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
+        return w & 0x7fffffff;
+	}
+	double drand() {
+		return (double) rand() / 0x7fffffff;
+	}
+} gen;
+
+
 struct Timer {
 	const unsigned long long int cycle_per_sec = 2800000000;
 	unsigned long long int begin_cycle;
@@ -65,17 +86,33 @@ int A[MAX_N]; //assignment neg 0 and pos
 int L[MAX_N]; //level
 vector<pi> hist; //implied var and clause
 set<pi> und; //value and undicided variables
+// bitset<pi> und;
 
 deque<pi> unsatis; //if .sec is -1 then .fst is literal, else
 //clause to update and where it is located in the clause 
 
-set<pi> WL[MAX_N][2]; //watched literals clause and where it is located
+struct hash_pair { 
+    template <class T1, class T2> 
+    inline size_t operator()(const pair<T1, T2>& p) const
+    { 
+        auto hash1 = hash<T1>{}(p.first); 
+        auto hash2 = hash<T2>{}(p.second); 
+        return hash1 ^ hash2; 
+    } 
+}; 
+
+unordered_set<pi, hash_pair> WL[MAX_N][2]; //watched literals clause and where it is located
+
 int VL[MAX_N][2]; //watched literal "index" at clause i
 int CL[MAX_N]; //value for literal
 int WCL[MAX_N]; //value for clause
 
 int bcounter; //counter for backtrace
 int ucounter;
+int ccounter;
+double dtime;
+double cctime;
+int undcnt;
 
 void show_all() {
 	int sum = 0;
@@ -105,6 +142,7 @@ inline int kai(int idx) {
 
 bool unit_propagation() { //redundant
 	ucounter++;
+	double time = timer.get();
 	while(!unsatis.empty()) {
 		pi wp = unsatis.front(); unsatis.pop_front();
 		if(wp.sec == -1) {
@@ -125,14 +163,13 @@ bool unit_propagation() { //redundant
 		else {
 			int wi = wp.fst, idx = wp.sec;
 			int itarget = (VL[wi][0] != idx);
-			int oidx = (itarget == 0) ? VL[wi][1] : VL[wi][0];
+			int oidx = (itarget == 0) ? VL[wi][1] : VL[wi][0]; //0 or 1
 
 			if(kai(W[wi][oidx]) > 0) continue;
 
 			else {
 				int at = -1;
-				rep(i, 0, sz(W[wi])) {
-					if(i == idx || i == oidx) continue;
+				rep(i, 2, sz(W[wi])) {
 					if(kai(W[wi][i]) >= 0) {
 						at = i;
 						break;
@@ -149,11 +186,12 @@ bool unit_propagation() { //redundant
 						WL[abs(jdx)][1].erase(pi(wi, idx));
 					}
 
-					VL[wi][itarget] = at;
+					swap(W[wi][idx], W[wi][at]);
+					VL[wi][itarget] = idx;
 
-					jdx = W[wi][at];
-					if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, at));
-					else WL[abs(jdx)][1].insert(pi(wi, at));
+					jdx = W[wi][idx];
+					if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, idx));
+					else WL[abs(jdx)][1].insert(pi(wi, idx));
 				}
 				else {
 					if(kai(W[wi][oidx]) == 0) {
@@ -176,13 +214,18 @@ bool unit_propagation() { //redundant
 			}
 		}
 	}
+	dtime += timer.get() - time;
 	return true;
 }
 
 
 int conflict(int l) {
-	set<int> new_equ;
-	new_equ.insert(N + 1);
+	ccounter++;
+	double time = timer.get();
+	// unordered_set<int> new_equ;
+	// new_equ.insert(N + 1);
+	bitset<2048> bit[2];
+	bit[1][N + 1] = 1;
 
 	int lcnt = 0, ml = 0;
 	while(!hist.empty() && lcnt != 1) {
@@ -193,32 +236,53 @@ int conflict(int l) {
 		A[v] = 0;
 		L[v] = 0;
 		und.insert(pi(CL[v], v));
+		undcnt++;
 		WCL[wi]++;
 
-		if(new_equ.count(v)) {
-			new_equ.erase(v);
+		// if(new_equ.count(v)) {
+		// 	new_equ.erase(v);
+		// 	lcnt -= (pl == l);
+		// }
+		// else if(new_equ.count(-v)) {
+		// 	new_equ.erase(-v);
+		// 	lcnt -= (pl == l);
+		// }
+		// else continue;
+
+		if(bit[0][v]) {
+			bit[0][v] = 0;
 			lcnt -= (pl == l);
 		}
-		else if(new_equ.count(-v)) {
-			new_equ.erase(-v);
+		else if(bit[1][v]) {
+			bit[1][v] = 0;
 			lcnt -= (pl == l);
 		}
 		else continue;
 
 		rep(i, 0, sz(W[wi])) {
 			int nv = W[wi][i];
-			if(abs(nv) == v || new_equ.count(nv)) continue;
 
-			new_equ.insert(nv);
+			// if(abs(nv) == v || new_equ.count(nv)) continue;
+			// new_equ.insert(nv);
+
+			int at = nv < 0 ? 0 : 1;
+			if(abs(nv) == v || bit[at][abs(nv)]) continue;
+			bit[at][abs(nv)] = 1;
+			
 			int nl = L[abs(nv)];
-
+			
 			lcnt += (nl == l);
 			if(nl < l) {
 				ml = max(ml, nl);
 			}
 		}
 	}
-	vi new_eqv = vi(all(new_equ));
+	// vi new_eqv = vi(all(new_equ));
+	vi new_eqv;
+	rep(i, 1, N + 1) {
+		if(bit[0][i]) new_eqv.pb(-i);
+		if(bit[1][i]) new_eqv.pb(i);
+	}
 
 	if(sz(new_eqv) == 1) {
 		unsatis.pb(pi(new_eqv[0], -1));
@@ -240,9 +304,11 @@ int conflict(int l) {
 			if(kai(idx) >= 0) upd(pi(N + 1, i));
 			else upd(pi(L[abs(idx)], i));
 		}
+		VL[M - 1][0] = 0;
+		VL[M - 1][1] = 1;
+		swap(W[M - 1][0], sp.sec);
+		swap(W[M - 1][1], tp.sec);
 
-		VL[M - 1][0] = sp.sec;
-		VL[M - 1][1] = tp.sec;
 
 		auto add = [&](int i) -> void{
 			int idx = W[M - 1][i];
@@ -250,10 +316,11 @@ int conflict(int l) {
 			else WL[abs(idx)][1].insert(pi(M - 1, i));
 		};
 
-		add(sp.sec); add(tp.sec);
-		unsatis.pb(pi(M - 1, tp.sec));
+		add(0); add(1);
+		unsatis.pb(pi(M - 1, 1));
 	}
 	// debug(new_eqv);
+	cctime += timer.get() - time;
 	return ml;
 }
 
@@ -272,9 +339,9 @@ void wlchecker() {
 		auto count = [&](int idx) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
-					debug(wi, jdx, W[wi]);
-				}
+				// if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
+				// 	debug(wi, jdx, W[wi]);
+				// }
 				assert(WL[abs(jdx)][0].count(pi(wi, idx)));
 			}
 			else {
@@ -322,17 +389,11 @@ void reduce_clause() {
 		auto erase = [&](int idx) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
-					debug(wi, jdx);
-				}
-				assert(WL[abs(jdx)][0].count(pi(wi, idx)));
+				// assert(WL[abs(jdx)][0].count(pi(wi, idx)));
 				WL[abs(jdx)][0].erase(pi(wi, idx));
 			}
 			else {
-				if(!WL[abs(jdx)][1].count(pi(wi, idx))) {
-					debug(wi, W[wi], MM, M);
-				}
-				assert(WL[abs(jdx)][1].count(pi(wi, idx)));
+				// assert(WL[abs(jdx)][1].count(pi(wi, idx)));
 				WL[abs(jdx)][1].erase(pi(wi, idx));
 			}
 		};
@@ -391,6 +452,7 @@ int backtrack(int l) {
 			A[v] = 0;
 			L[v] = 0;
 			und.insert(pi(CL[v], v));
+			undcnt++;
 		}
 	}
 	vi vec;
@@ -411,6 +473,7 @@ int backtrack(int l) {
 	rep(i, 0, sz(vec)) {
 		int v = vec[i];
 		und.insert(pi(CL[v], v));
+		undcnt++;
 	}
 	if(bcounter == 256) {
 		vec.clear();
@@ -422,6 +485,7 @@ int backtrack(int l) {
 		rep(i, 0, M) WCL[i] /= 2;
 		rep(i, 0, sz(vec)) {
 			und.insert(pi(CL[vec[i]], vec[i]));
+			undcnt++;
 		}
 		bcounter = 0;
 	}
@@ -435,20 +499,24 @@ int backtrack(int l) {
 }
 
 void init() {
-	MM = M;
 	rep(i, 1, N + 1) und.insert(pi(0, i));
+	int at = 0;
 	rep(i, 0, M) {
 		if(sz(W[i]) == 1) unsatis.pb(pi(W[i][0], -1));
 		else {
-			VL[i][0] = 0;
-			VL[i][1] = 1;
+			W[at] = W[i];
+			VL[at][0] = 0;
+			VL[at][1] = 1;
 			rep(j, 0, 2) {
-				int idx = W[i][j];
-				if(idx < 0) WL[abs(idx)][0].insert(pi(i, j));
-				else WL[abs(idx)][1].insert(pi(i, j));
+				int idx = W[at][j];
+				if(idx < 0) WL[abs(idx)][0].insert(pi(at, j));
+				else WL[abs(idx)][1].insert(pi(at, j));
 			}
+			at++;
 		}
 	}
+	M = at;
+	MM = at;
 }
 
 
@@ -458,11 +526,12 @@ bool sat_solver() {
 	if(!unit_propagation()) return false;
 
 	int l = 1;
+	int satcnt = 0;
 	while(!und.empty()) {
 		// debug("omo", timer.get());
 		if(timer.get() > 2.0) {
 			timer.reset();
-			debug(ucounter, MM, M);
+			debug(ccounter, undcnt, satcnt, dtime, cctime);
 		}
 		auto it = und.begin();
 		int x = (*it).sec;
@@ -475,6 +544,7 @@ bool sat_solver() {
 		hist.push_back(pi(x, -1));
 		l = backtrack(l);
 		if(!l) return false;
+		satcnt++;
 	}
 	return true;
 }
