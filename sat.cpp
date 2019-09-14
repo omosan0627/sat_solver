@@ -33,7 +33,7 @@ mt19937 rng; //use it by rng() % mod, shuffle(all(vec), rng)
 
 SatSolver sat;
 
-vi V[MAX_N];
+vi V[4096];
 
 void solve() {
 	string s1, s2;

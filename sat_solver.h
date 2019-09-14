@@ -57,26 +57,41 @@ extern Timer timer;
 extern Printer printer;
 
 
+struct hash_pair { 
+	template <class T1, class T2> 
+	inline size_t operator()(const pair<T1, T2>& p) const
+	{ 
+		auto hash1 = hash<T1>{}(p.first); 
+		auto hash2 = hash<T2>{}(p.second); 
+		return hash1 ^ hash2; 
+	} 
+}; 
+
 class SatSolver {
 	public:
 
 	void init(int N);
 	void init(int N, const vector<vi>& w);
+
 	bool solve();
 	void add_clause(const vi& vec);
+
 	vi sat_clause();
+
 	SatSolver();
 	SatSolver(int N);
 	SatSolver(int N, const vector<vi>& w);
+
+	~SatSolver();
 
 	private:
 
 	int N, M; //num of var, clauses
 	int MM; //original clause num
 
-	vi W[MAX_M]; //clauses
-	int A[MAX_N]; //assignment neg 0 and pos
-	int L[MAX_N]; //level
+	vi *W; //clauses
+	int *A; //assignment neg 0 and pos
+	int *L; //level
 	vector<pi> hist; //implied var and clause
 	set<pi> und; //value and undicided variables
 	// bitset<pi> und;
@@ -84,20 +99,10 @@ class SatSolver {
 	deque<pi> unsatis; //if .sec is -1 then .fst is literal, else
 	//clause to update and where it is located in the clause 
 
-	struct hash_pair { 
-		template <class T1, class T2> 
-		inline size_t operator()(const pair<T1, T2>& p) const
-		{ 
-			auto hash1 = hash<T1>{}(p.first); 
-			auto hash2 = hash<T2>{}(p.second); 
-			return hash1 ^ hash2; 
-		} 
-	}; 
+	unordered_set<pi, hash_pair> *WL; //watched literals clause and where it is located
 
-	unordered_set<pi, hash_pair> WL[MAX_N][2]; //watched literals clause and where it is located
-
-	int CL[MAX_N]; //value for literal
-	int WCL[MAX_M]; //value for clause
+	int *CL; //value for literal
+	int *WCL; //value for clause
 
 	int bcounter; //counter for backtrace
 	int ucounter;
@@ -105,6 +110,7 @@ class SatSolver {
 	double dtime;
 	double cctime;
 
+	void allocate_memory();
 
 
 	void show_all();

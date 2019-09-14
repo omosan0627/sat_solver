@@ -17,9 +17,29 @@ typedef complex<double> comp;
 Timer timer;
 Printer printer;
 
-SatSolver::SatSolver(){}
-SatSolver::SatSolver(int N){init(N);}
-SatSolver::SatSolver(int N, const vector<vi>& w){init(N, w);}
+SatSolver::SatSolver(){allocate_memory();}
+SatSolver::SatSolver(int N){allocate_memory();init(N);}
+SatSolver::SatSolver(int N, const vector<vi>& w){allocate_memory();init(N, w);}
+
+SatSolver::~SatSolver() {
+	delete[] W;
+	delete[] A;
+	delete[] L;
+	delete[] WL;
+	delete[] CL;
+	delete[] WCL;
+}
+
+void SatSolver::allocate_memory() {
+	W = new vi[MAX_M];
+	A = new int[MAX_N]; //assignment neg 0 and pos
+	L = new int[MAX_N]; //level
+	WL = new unordered_set<pi, hash_pair>[MAX_N * 2]; //watched literals clause and where it is located
+
+	CL = new int[MAX_N]; //value for literal
+	WCL = new int[MAX_M]; //value for clause
+
+}
 
 void SatSolver::add_clause(const vi& vec) {
 	if(sz(vec) == 1) unsatis.pb(pi(vec[0], -1));
@@ -28,8 +48,8 @@ void SatSolver::add_clause(const vi& vec) {
 		W[M++] = vec;
 		rep(j, 0, 2) {
 			int idx = vec[j];
-			if(idx < 0) WL[abs(idx)][0].insert(pi(M - 1, j));
-			else WL[abs(idx)][1].insert(pi(M - 1, j));
+			if(idx < 0) WL[abs(idx) * 2].insert(pi(M - 1, j));
+			else WL[abs(idx) * 2 + 1].insert(pi(M - 1, j));
 		}
 	}
 }
@@ -44,8 +64,10 @@ void SatSolver::init(int n) {
 	N = n;
 	M = 0;
 	MM = 0;
-	memset(A, 0, sizeof(A));
-	memset(L, 0, sizeof(L));
+	rep(i, 1, N + 1) {
+		A[i] = 0;
+		L[i] = 0;
+	}
 	hist.clear();
 	und.clear();
 
@@ -55,12 +77,12 @@ void SatSolver::init(int n) {
 
 	rep(i, 1, N + 1) {
 		rep(j, 0, 2) {
-			WL[i][j].clear();
+			WL[i * 2 + j].clear();
 		}
 	}
 
-	memset(CL, 0, sizeof(CL));
-	memset(WCL, 0, sizeof(WCL));
+	rep(i, 1, N + 1) CL[i] = 0;
+	rep(i, 0, M) WCL[i] = 0;
 
 	bcounter = 0;
 	ucounter = 0;
@@ -78,8 +100,8 @@ void SatSolver::init(int n, const vector<vi>& w) {
 void SatSolver::show_all() {
 	int sum = 0;
 	rep(i, 1, N + 1) {
-		debug(i, vector<pi>(all(WL[i][0])), vector<pi>(all(WL[i][1])));
-		sum += sz(WL[i][0]) + sz(WL[i][1]);
+		debug(i, vector<pi>(all(WL[i * 2])), vector<pi>(all(WL[i * 2 + 1])));
+		sum += sz(WL[i * 2]) + sz(WL[i * 2 + 1]);
 	}
 	debug("sum", sum);
 	// rep(i, 0, M) debug(i, VL[i][0], VL[i][1]);
@@ -104,7 +126,7 @@ bool SatSolver::unit_propagation() { //redundant
 				und.erase(pi(CL[abs(idx)], abs(idx)));
 
 				int at = (idx < 0 ? 1 : 0);
-				for(auto wi: WL[abs(idx)][at]) {
+				for(auto wi: WL[abs(idx) * 2 + at]) {
 					unsatis.push_back(wi);
 				}
 			}
@@ -128,19 +150,19 @@ bool SatSolver::unit_propagation() { //redundant
 				if(at != -1) {
 					int jdx = W[wi][idx];
 					if(jdx < 0) {
-						// assert(WL[abs(jdx)][0].count(pi(wi, idx)));
-						WL[abs(jdx)][0].erase(pi(wi, idx));
+						// assert(WL[abs(jdx) * 2].count(pi(wi, idx)));
+						WL[abs(jdx) * 2].erase(pi(wi, idx));
 					}
 					else {
-						// assert(WL[abs(jdx)][1].count(pi(wi, idx)));
-						WL[abs(jdx)][1].erase(pi(wi, idx));
+						// assert(WL[abs(jdx) * 2 + 1].count(pi(wi, idx)));
+						WL[abs(jdx) * 2 + 1].erase(pi(wi, idx));
 					}
 
 					swap(W[wi][idx], W[wi][at]);
 
 					jdx = W[wi][idx];
-					if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, idx));
-					else WL[abs(jdx)][1].insert(pi(wi, idx));
+					if(jdx < 0) WL[abs(jdx) * 2].insert(pi(wi, idx));
+					else WL[abs(jdx) * 2 + 1].insert(pi(wi, idx));
 				}
 				else {
 					if(kai(W[wi][oidx]) == 0) {
@@ -150,7 +172,7 @@ bool SatSolver::unit_propagation() { //redundant
 						L[abs(f)] = L[abs(s)];
 						und.erase(pi(CL[abs(f)], abs(f)));
 						int at = f < 0 ? 1 : 0;
-						for(auto tp: WL[abs(f)][at]) {
+						for(auto tp: WL[abs(f) * 2 + at]) {
 							unsatis.push_back(tp);
 						}
 					}
@@ -257,8 +279,8 @@ int SatSolver::conflict(int l) {
 
 		rep(i, 0, 2) {
 			int idx = W[M - 1][i];
-			if(idx < 0) WL[abs(idx)][0].insert(pi(M - 1, i));
-			else WL[abs(idx)][1].insert(pi(M - 1, i));
+			if(idx < 0) WL[abs(idx) * 2].insert(pi(M - 1, i));
+			else WL[abs(idx) * 2 + 1].insert(pi(M - 1, i));
 		}
 
 		unsatis.pb(pi(M - 1, 1));
@@ -272,12 +294,12 @@ void SatSolver::wlchecker() {
 	int sum = 0;
 	rep(i, 1, N + 1) {
 		rep(j, 0, 2) {
-			sum += sz(WL[i][j]);
+			sum += sz(WL[i * 2 + j]);
 		}
 	}
 	if(sum != N * 2) {
 		rep(i, 1, N + 1) {
-			debug(vector<pi>(all(WL[i][0])), vector<pi>(all(WL[i][1])));
+			debug(vector<pi>(all(WL[i * 2])), vector<pi>(all(WL[i * 2 + 1])));
 		}
 		debug(sum, M * 2);
 	}
@@ -286,13 +308,13 @@ void SatSolver::wlchecker() {
 		rep(idx, 0, 2) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				// if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
+				// if(!WL[abs(jdx) * 2].count(pi(wi, idx))) {
 				// 	debug(wi, jdx, W[wi]);
 				// }
-				assert(WL[abs(jdx)][0].count(pi(wi, idx)));
+				assert(WL[abs(jdx) * 2].count(pi(wi, idx)));
 			}
 			else {
-				assert(WL[abs(jdx)][1].count(pi(wi, idx)));
+				assert(WL[abs(jdx) * 2 + 1].count(pi(wi, idx)));
 			}
 		}
 	}
@@ -334,12 +356,12 @@ void SatSolver::reduce_clause() {
 		rep(idx, 0, 2) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				// assert(WL[abs(jdx)][0].count(pi(wi, idx)));
-				WL[abs(jdx)][0].erase(pi(wi, idx));
+				// assert(WL[abs(jdx) * 2].count(pi(wi, idx)));
+				WL[abs(jdx) * 2].erase(pi(wi, idx));
 			}
 			else {
-				// assert(WL[abs(jdx)][1].count(pi(wi, idx)));
-				WL[abs(jdx)][1].erase(pi(wi, idx));
+				// assert(WL[abs(jdx) * 2 + 1].count(pi(wi, idx)));
+				WL[abs(jdx) * 2 + 1].erase(pi(wi, idx));
 			}
 		}
 	}
@@ -365,8 +387,8 @@ void SatSolver::reduce_clause() {
 		W[wi] = W[wj];
 		rep(idx, 0, 2) {
 			int jdx = W[wi][idx];
-			if(jdx < 0) WL[abs(jdx)][0].insert(pi(wi, idx));
-			else WL[abs(jdx)][1].insert(pi(wi, idx));
+			if(jdx < 0) WL[abs(jdx) * 2].insert(pi(wi, idx));
+			else WL[abs(jdx) * 2 + 1].insert(pi(wi, idx));
 		}
 	}
 	rep(i, addM, M) WCL[i + MM] = 0;
@@ -454,7 +476,7 @@ bool SatSolver::solve() {
 		und.erase(it);
 		A[x] = 1;
 		L[x] = l;
-		for(pi wp: WL[x][0]) {
+		for(pi wp: WL[x * 2]) {
 			unsatis.pb(wp);
 		}
 		hist.push_back(pi(x, -1));
