@@ -86,17 +86,32 @@ int A[MAX_N]; //assignment neg 0 and pos
 int L[MAX_N]; //level
 vector<pi> hist; //implied var and clause
 set<pi> und; //value and undicided variables
+// bitset<pi> und;
 
 deque<pi> unsatis; //if .sec is -1 then .fst is literal, else
 //clause to update and where it is located in the clause 
 
-set<pi> WL[MAX_N][2]; //watched literals clause and where it is located
+struct hash_pair { 
+    template <class T1, class T2> 
+    inline size_t operator()(const pair<T1, T2>& p) const
+    { 
+        auto hash1 = hash<T1>{}(p.first); 
+        auto hash2 = hash<T2>{}(p.second); 
+        return hash1 ^ hash2; 
+    } 
+}; 
+
+unordered_set<pi, hash_pair> WL[MAX_N][2]; //watched literals clause and where it is located
+
 int VL[MAX_N][2]; //watched literal "index" at clause i
 int CL[MAX_N]; //value for literal
 int WCL[MAX_N]; //value for clause
 
 int bcounter; //counter for backtrace
 int ucounter;
+int ccounter;
+double dtime;
+double cctime;
 
 void show_all() {
 	int sum = 0;
@@ -126,6 +141,7 @@ inline int kai(int idx) {
 
 bool unit_propagation() { //redundant
 	ucounter++;
+	double time = timer.get();
 	while(!unsatis.empty()) {
 		pi wp = unsatis.front(); unsatis.pop_front();
 		if(wp.sec == -1) {
@@ -197,13 +213,18 @@ bool unit_propagation() { //redundant
 			}
 		}
 	}
+	dtime += timer.get() - time;
 	return true;
 }
 
 
 int conflict(int l) {
-	set<int> new_equ;
-	new_equ.insert(N + 1);
+	ccounter++;
+	double time = timer.get();
+	// set<int> new_equ;
+	// new_equ.insert(N + 1);
+	bitset<2048> bit[2];
+	bit[1][N + 1] = 1;
 
 	int lcnt = 0, ml = 0;
 	while(!hist.empty() && lcnt != 1) {
@@ -216,30 +237,50 @@ int conflict(int l) {
 		und.insert(pi(CL[v], v));
 		WCL[wi]++;
 
-		if(new_equ.count(v)) {
-			new_equ.erase(v);
+		// if(new_equ.count(v)) {
+		// 	new_equ.erase(v);
+		// 	lcnt -= (pl == l);
+		// }
+		// else if(new_equ.count(-v)) {
+		// 	new_equ.erase(-v);
+		// 	lcnt -= (pl == l);
+		// }
+		// else continue;
+
+		if(bit[0][v]) {
+			bit[0][v] = 0;
 			lcnt -= (pl == l);
 		}
-		else if(new_equ.count(-v)) {
-			new_equ.erase(-v);
+		else if(bit[1][v]) {
+			bit[1][v] = 0;
 			lcnt -= (pl == l);
 		}
 		else continue;
 
 		rep(i, 0, sz(W[wi])) {
 			int nv = W[wi][i];
-			if(abs(nv) == v || new_equ.count(nv)) continue;
 
-			new_equ.insert(nv);
+			// if(abs(nv) == v || new_equ.count(nv)) continue;
+			// new_equ.insert(nv);
+
+			int at = nv < 0 ? 0 : 1;
+			if(abs(nv) == v || bit[at][abs(nv)]) continue;
+			bit[at][abs(nv)] = 1;
+			
 			int nl = L[abs(nv)];
-
+			
 			lcnt += (nl == l);
 			if(nl < l) {
 				ml = max(ml, nl);
 			}
 		}
 	}
-	vi new_eqv = vi(all(new_equ));
+	// vi new_eqv = vi(all(new_equ));
+	vi new_eqv;
+	rep(i, 1, N + 1) {
+		if(bit[0][i]) new_eqv.pb(-i);
+		if(bit[1][i]) new_eqv.pb(i);
+	}
 
 	if(sz(new_eqv) == 1) {
 		unsatis.pb(pi(new_eqv[0], -1));
@@ -275,6 +316,7 @@ int conflict(int l) {
 		unsatis.pb(pi(M - 1, tp.sec));
 	}
 	// debug(new_eqv);
+	cctime += timer.get() - time;
 	return ml;
 }
 
@@ -293,9 +335,9 @@ void wlchecker() {
 		auto count = [&](int idx) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
-					debug(wi, jdx, W[wi]);
-				}
+				// if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
+				// 	debug(wi, jdx, W[wi]);
+				// }
 				assert(WL[abs(jdx)][0].count(pi(wi, idx)));
 			}
 			else {
@@ -343,14 +385,11 @@ void reduce_clause() {
 		auto erase = [&](int idx) {
 			int jdx = W[wi][idx];
 			if(jdx < 0) {
-				if(!WL[abs(jdx)][0].count(pi(wi, idx))) {
-					debug(wi, jdx);
-				}
-				assert(WL[abs(jdx)][0].count(pi(wi, idx)));
+				// assert(WL[abs(jdx)][0].count(pi(wi, idx)));
 				WL[abs(jdx)][0].erase(pi(wi, idx));
 			}
 			else {
-				assert(WL[abs(jdx)][1].count(pi(wi, idx)));
+				// assert(WL[abs(jdx)][1].count(pi(wi, idx)));
 				WL[abs(jdx)][1].erase(pi(wi, idx));
 			}
 		};
@@ -454,18 +493,23 @@ int backtrack(int l) {
 
 void init() {
 	rep(i, 1, N + 1) und.insert(pi(0, i));
+	int at = 0;
 	rep(i, 0, M) {
 		if(sz(W[i]) == 1) unsatis.pb(pi(W[i][0], -1));
 		else {
-			VL[i][0] = 0;
-			VL[i][1] = 1;
+			W[at] = W[i];
+			VL[at][0] = 0;
+			VL[at][1] = 1;
 			rep(j, 0, 2) {
-				int idx = W[i][j];
-				if(idx < 0) WL[abs(idx)][0].insert(pi(i, j));
-				else WL[abs(idx)][1].insert(pi(i, j));
+				int idx = W[at][j];
+				if(idx < 0) WL[abs(idx)][0].insert(pi(at, j));
+				else WL[abs(idx)][1].insert(pi(at, j));
 			}
+			at++;
 		}
 	}
+	M = at;
+	MM = at;
 }
 
 
@@ -479,7 +523,7 @@ bool sat_solver() {
 		// debug("omo", timer.get());
 		if(timer.get() > 2.0) {
 			timer.reset();
-			debug(ucounter, MM, M);
+			debug(ccounter, dtime, cctime);
 		}
 		auto it = und.begin();
 		int x = (*it).sec;
@@ -500,7 +544,6 @@ void solve() {
 	string s1, s2;
 	cin >> s1 >> s2;
 	cin >> N >> M;
-	MM = M;
 	rep(i, 0, M) {
 		int a;
 		while(true) {
@@ -513,7 +556,7 @@ void solve() {
 	rep(i, 1, N + 1) {
 		debug(i, A[i]);
 	}
-	debug(vi(CL + 1, CL + N + 1));
+	// debug(vi(CL + 1, CL + N + 1));
 }
 
 uint32_t rd() {

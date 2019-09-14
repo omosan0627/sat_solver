@@ -541,6 +541,11 @@ void solve() {
 			}
 		}
 	}
+	cout << "p cnf " << N << " " << M << "\n";
+	rep(i, 0, M) {
+		rep(j, 0, sz(W[i])) cout << W[i][j] << " ";
+		cout << "0\n";
+	}
 	if(!sat_solver()) {
 		cout << "NO SOLUTION\n";
 	}
@@ -578,7 +583,7 @@ int main() {
 	cerr.precision(6);
 	rng.seed(rd());
 #ifdef LOCAL
-	//freopen("in.txt", "wt", stdout); //for tester
+	freopen("cnf.txt", "wt", stdout); //for tester
 	if(!freopen("numin.txt", "rt", stdin)) return 1;
 #endif	
 	solve();
