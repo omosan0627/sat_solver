@@ -3,7 +3,7 @@ https://www.slideshare.net/sakai/how-a-cdcl-sat-solver-works
 
 in.txt
 ```
-9 7  
+p cnf 9 7  
 -1 -4 5 0  
 -4 6 0  
 -5 -6 7 0  
