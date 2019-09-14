@@ -1,6 +1,8 @@
-example from this slide  
+An example from this slide  
 https://www.slideshare.net/sakai/how-a-cdcl-sat-solver-works  
 
+in.txt
+```
 9 7  
 -1 -4 5 0  
 -4 6 0  
@@ -9,3 +11,13 @@ https://www.slideshare.net/sakai/how-a-cdcl-sat-solver-works
 -2 -7 9 0  
 -8 -9 0  
 -8 9 0  
+```
+terminal
+
+```
+$ make sat
+$ ./sat in.txt
+1
+[1, 2, 3, -4, 5, -6, -7, -8, 9]
+```
+

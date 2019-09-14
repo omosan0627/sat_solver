@@ -50,8 +50,8 @@ void solve() {
 		}
 		sat.add_clause(V[i]);
 	}
-	debug(sat.solve());
-	debug(sat.sat_clause());
+	printer.Debug(sat.solve());
+	printer.Debug(sat.sat_clause());
 
 }
 
@@ -74,7 +74,7 @@ int main() {
 	cerr.precision(6);
 	rng.seed(rd());
 	//freopen("in.txt", "wt", stdout); //for tester
-	if(!freopen("cnf.txt", "rt", stdin)) return 1;
+	if(!freopen("in.txt", "rt", stdin)) return 1;
 	solve();
     cerr << "Time: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
 	return 0;
