@@ -89,6 +89,7 @@ void SatSolver::init(int n) {
 	ccounter = 0;
 	dtime = 0.0;
 	cctime = 0.0;
+	rctime = 0.0;
 }
 
 void SatSolver::init(int n, const vector<vi>& w) {
@@ -113,13 +114,14 @@ void SatSolver::show_all() {
 
 bool SatSolver::unit_propagation() { //redundant
 	ucounter++;
-	double time = timer.get();
 	while(!unsatis.empty()) {
 		pi wp = unsatis.front(); unsatis.pop_front();
 		if(wp.sec == -1) {
 			int idx = wp.fst;
 			if(kai(idx) > 0) continue;
-			else if(kai(idx) < 0) return false;
+			else if(kai(idx) < 0) {
+				return false;
+			}
 			else {
 				A[abs(idx)] = idx < 0 ? -1 : 1;
 				L[abs(idx)] = 0;
@@ -140,6 +142,7 @@ bool SatSolver::unit_propagation() { //redundant
 
 			else {
 				int at = -1;
+				double time = timer.get();
 				rep(i, 2, sz(W[wi])) {
 					if(i == idx || i == oidx) continue;
 					if(kai(W[wi][i]) >= 0) {
@@ -147,6 +150,7 @@ bool SatSolver::unit_propagation() { //redundant
 						break;
 					}
 				}
+				dtime += timer.get() - time;
 				if(at != -1) {
 					int jdx = W[wi][idx];
 					if(jdx < 0) {
@@ -185,12 +189,10 @@ bool SatSolver::unit_propagation() { //redundant
 			}	
 		}
 	}
-	dtime += timer.get() - time;
 	return true;
 }
 
 int SatSolver::conflict(int l) {
-	ccounter++;
 	double time = timer.get();
 	unordered_set<int> new_equ;
 	new_equ.insert(N + 1);
@@ -404,7 +406,9 @@ void SatSolver::reduce_clause() {
 
 int SatSolver::backtrack(int l) {
 	int pM = M;
+	double time = timer.get();
 	while(!unit_propagation()) {
+		ccounter++;
 		if(l == 0) return 0;
 		l = conflict(l);
 		while(!hist.empty()) {
@@ -417,6 +421,7 @@ int SatSolver::backtrack(int l) {
 			und.insert(pi(CL[v], v));
 		}
 	}
+	rctime += timer.get() - time;
 	vi vec;
 	rep(i, pM, M) {
 		rep(j, 0, sz(W[i])) {
@@ -436,7 +441,7 @@ int SatSolver::backtrack(int l) {
 		int v = vec[i];
 		und.insert(pi(CL[v], v));
 	}
-	if(bcounter == 256) {
+	if(bcounter == 512) {
 		vec.clear();
 		for(auto p: und) {
 			vec.pb(p.sec);
@@ -469,7 +474,7 @@ bool SatSolver::solve() {
 		// debug("omo", timer.get());
 		if(timer.get() > 2.0) {
 			timer.reset();
-			debug(ccounter, dtime, cctime);
+			debug(ccounter, ucounter, dtime, cctime, rctime);
 		}
 		auto it = und.begin();
 		int x = (*it).sec;

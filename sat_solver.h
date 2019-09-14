@@ -109,6 +109,7 @@ class SatSolver {
 	int ccounter;
 	double dtime;
 	double cctime;
+	double rctime;
 
 	void allocate_memory();
 
