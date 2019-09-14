@@ -10,7 +10,7 @@
 #define pb push_back
 #define sec second
 #define fst first
-#define debug(fmt, ...) Debug(__LINE__, ":", fmt, ##__VA_ARGS__)
+#define debug(fmt, ...) printer.Debug(__LINE__, ":", fmt, ##__VA_ARGS__)
 using namespace std;
 typedef long long ll;
 typedef unsigned long long ull;
@@ -21,13 +21,27 @@ typedef vector<int> vi;
 typedef vector<ll> vl;
 typedef vector<vl> mat;
 typedef complex<double> comp;
-void Debug() {cerr << '\n'; }
-template<class FIRST, class... REST>void Debug(FIRST arg, REST... rest){
-	cerr<<arg<<" ";Debug(rest...);}
-template<class T>ostream& operator<<(ostream& out,const vector<T>& v) {
-	out<<"[";if(!v.empty()){rep(i,0,sz(v)-1)out<<v[i]<<", ";out<<v.back();}out<<"]";return out;}
-template<class S, class T>ostream& operator<<(ostream& out,const pair<S, T>& v){
-	out<<"("<<v.first<<", "<<v.second<<")";return out;}
+struct Printer {
+	template<class T>void single(const vector<T>& v){
+		cerr << "[";
+		if(!v.empty()) {
+			rep(i,0,sz(v)-1) {
+				single(v[i]); cerr << ", ";
+			}
+			single(v.back());
+		}
+		cerr << "]";
+	}
+	template<class S, class T>void single(const pair<S, T>& v) {
+		cerr << "("; single(v.fst); cerr << ", "; single(v.second); cerr << ")";
+	}
+	template<class S>void single(const S& v) {
+		cerr << v;
+	}
+	void Debug() {cerr << '\n'; }
+	template<class FIRST, class... REST>void Debug(FIRST arg, REST... rest){
+		single(arg); cerr << " ";Debug(rest...);}
+} printer;
 const int MAX_N = 500010;
 const int MAX_V = 100010;
 const double eps = 1e-6;
@@ -38,10 +52,9 @@ const double PI = 3.14159265358979323846;
 mt19937 rng; //use it by rng() % mod, shuffle(all(vec), rng)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-unordered_set<pi> S;
 
 void solve() {
-	S.insert(pi(1, 1));
+	debug("omo", vector<pi>(5, pi(1, 1)), pi(2, 3));
 }
 
 uint32_t rd() {

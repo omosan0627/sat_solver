@@ -31,46 +31,28 @@ mt19937 rng; //use it by rng() % mod, shuffle(all(vec), rng)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-struct xorshift {
-	unsigned int x, y, z, w;
-	unsigned int t;
-	xorshift() {
-		x = rng(); y = rng(); z = rng(); w = rng();
-		t = 0;
-	}
-	int rand() {
-		t = x ^ (x << 11);
-        x = y;
-        y = z;
-        z = w;
-        w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
-        return w & 0x7fffffff;
-	}
-	double drand() {
-		return (double) rand() / 0x7fffffff;
-	}
-} gen;
-
 SatSolver sat;
 
+vi V[MAX_N];
+
 void solve() {
-	// string s1, s2;
-	// cin >> s1 >> s2;
-	// cin >> sat.N >> sat.M;
-	// rep(i, 0, sat.M) {
-	// 	int a;
-	// 	while(true) {
-	// 		cin >> a; 
-	// 		if(a == 0) break;
-	// 		sat.W[i].pb(a);
-	// 	}
-	// }
-	// cout << sat.sat_solver() << "\n";
-	// rep(i, 1, sat.N + 1) {
-	// 	cout << i << " " << sat.A[i] << "\n";
-	// }
-	// // show_all();
-	// // debug(vi(CL + 1, CL + N + 1));
+	string s1, s2;
+	cin >> s1 >> s2;
+	int N, M;
+	cin >> N >> M;
+	sat.init(N);
+	rep(i, 0, M) {
+		int a;
+		while(true) {
+			cin >> a; 
+			if(a == 0) break;
+			V[i].pb(a);
+		}
+		sat.add_clause(V[i]);
+	}
+	debug(sat.solve());
+	debug(sat.sat_clause());
+
 }
 
 uint32_t rd() {
@@ -84,19 +66,15 @@ uint32_t rd() {
 }
 
 int main() {
-#ifndef LOCAL
 	ios::sync_with_stdio(false);
     cin.tie(0);
-#endif
     cout << fixed;
 	cout.precision(20);
     cerr << fixed;
 	cerr.precision(6);
 	rng.seed(rd());
-#ifdef LOCAL
 	//freopen("in.txt", "wt", stdout); //for tester
-	if(!freopen("in.txt", "rt", stdin)) return 1;
-#endif	
+	if(!freopen("cnf.txt", "rt", stdin)) return 1;
 	solve();
     cerr << "Time: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
 	return 0;
